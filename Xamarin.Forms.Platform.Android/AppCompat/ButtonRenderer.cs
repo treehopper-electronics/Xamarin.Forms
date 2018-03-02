@@ -15,9 +15,11 @@ using static System.String;
 
 namespace Xamarin.Forms.Platform.Android.AppCompat
 {
-    public class ButtonRenderer : ViewRenderer<Button, AppCompatButton>, AView.IOnAttachStateChangeListener
+	public class ButtonRenderer :
+		ViewRenderer<Button, AppCompatButton>,
+		AView.IOnAttachStateChangeListener
 	{
-		ButtonBackgroundTracker _backgroundTracker;
+		BorderBackgroundManager _backgroundTracker;
 		TextColorSwitcher _textColorSwitcher;
 		float _defaultFontSize;
 		Typeface _defaultTypeface;
@@ -30,7 +32,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 		}
 
 		[Obsolete("This constructor is obsolete as of version 2.5. Please use ButtonRenderer(Context) instead.")]
-		public ButtonRenderer() 
+		public ButtonRenderer()
 		{
 			AutoPackage = false;
 		}
@@ -113,16 +115,14 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 					button.Tag = this;
 
 					var useLegacyColorManagement = e.NewElement.UseLegacyColorManagement();
-					_textColorSwitcher = new TextColorSwitcher(button.TextColors, useLegacyColorManagement);  
+					_textColorSwitcher = new TextColorSwitcher(button.TextColors, useLegacyColorManagement);
 
 					SetNativeControl(button);
 					button.AddOnAttachStateChangeListener(this);
 				}
 
 				if (_backgroundTracker == null)
-					_backgroundTracker = new ButtonBackgroundTracker(Element, Control);
-				else
-					_backgroundTracker.Button = e.NewElement;
+					_backgroundTracker = new BorderBackgroundManager(this);
 
 				UpdateAll();
 			}
@@ -151,7 +151,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			if (Element == null || Control == null)
 				return;
 
-			_backgroundTracker?.UpdateBackgroundColor();
+			_backgroundTracker?.UpdateDrawable();
 		}
 
 		void UpdateAll()

@@ -89,9 +89,10 @@ namespace Xamarin.Forms.Platform.Android
 				RegisterHandlerForDefaultRenderer(typeof(NavigationPage), typeof(NavigationPageRenderer), typeof(NavigationRenderer));
 				RegisterHandlerForDefaultRenderer(typeof(TabbedPage), typeof(TabbedPageRenderer), typeof(TabbedRenderer));
 				RegisterHandlerForDefaultRenderer(typeof(MasterDetailPage), typeof(MasterDetailPageRenderer), typeof(MasterDetailRenderer));
-                RegisterHandlerForDefaultRenderer(typeof(Switch), typeof(AppCompat.SwitchRenderer), typeof(SwitchRenderer));
+				RegisterHandlerForDefaultRenderer(typeof(Switch), typeof(AppCompat.SwitchRenderer), typeof(SwitchRenderer));
 				RegisterHandlerForDefaultRenderer(typeof(Picker), typeof(AppCompat.PickerRenderer), typeof(PickerRenderer));
 				RegisterHandlerForDefaultRenderer(typeof(CarouselPage), typeof(AppCompat.CarouselPageRenderer), typeof(CarouselPageRenderer));
+				RegisterHandlerForDefaultRenderer(typeof(ImageButton), typeof(FastRenderers.ImageButtonRenderer), typeof(FastRenderers.ImageButtonRenderer));
 
 				if (Forms.Flags.Contains(Flags.FastRenderersExperimental))
 				{
@@ -123,7 +124,8 @@ namespace Xamarin.Forms.Platform.Android
 			if (application?.MainPage != null)
 			{
 				var iver = Platform.GetRenderer(application.MainPage);
-				if (iver != null) {
+				if (iver != null)
+				{
 					iver.Dispose();
 					application.MainPage.ClearValue(Platform.RendererProperty);
 				}
@@ -159,7 +161,7 @@ namespace Xamarin.Forms.Platform.Android
 			}
 			else
 				bar = new AToolbar(this);
-			
+
 			SetSupportActionBar(bar);
 
 			_layout = new ARelativeLayout(BaseContext);
