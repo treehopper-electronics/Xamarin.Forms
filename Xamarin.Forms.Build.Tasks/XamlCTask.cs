@@ -272,7 +272,7 @@ namespace Xamarin.Forms.Build.Tasks
 
 					//First using the ResourceLoader
 					var nop = Instruction.Create(Nop);
-					var getResourceProvider = module.ImportPropertyGetterReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "ResourceLoader"), "ResourceProvider");
+					var getResourceProvider = module.ImportPropertyGetterReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "ResourceLoader"), "ResourceProvider", isStatic: true);
 					il.Emit(Call, getResourceProvider);
 					il.Emit(Brfalse, nop);
 					il.Emit(Call, getResourceProvider);
@@ -297,7 +297,7 @@ namespace Xamarin.Forms.Build.Tasks
 					//Or using the deprecated XamlLoader
 					nop = Instruction.Create(Nop);
 
-					var getXamlFileProvider = module.ImportPropertyGetterReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlLoader"), propertyName: "XamlFileProvider");
+					var getXamlFileProvider = module.ImportPropertyGetterReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlLoader"), propertyName: "XamlFileProvider", isStatic: true);
 					il.Emit(Call, getXamlFileProvider);
 					il.Emit(Brfalse, nop);
 					il.Emit(Call, getXamlFileProvider);

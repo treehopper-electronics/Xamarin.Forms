@@ -218,7 +218,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Instruction.Create(OpCodes.Ldstr, str);
 					yield return Instruction.Create(OpCodes.Ldc_I4, 0x6f); //NumberStyles.Number
 					var getInvariant = module.ImportPropertyGetterReference(("mscorlib", "System.Globalization", "CultureInfo"),
-																			propertyName: "InvariantCulture");
+					                                                        propertyName: "InvariantCulture", isStatic: true);
 					yield return Instruction.Create(OpCodes.Call, getInvariant);
 					yield return Instruction.Create(OpCodes.Ldloca, vardef);
 					var tryParse = module.ImportMethodReference(("mscorlib", "System", "Decimal"),

@@ -42,14 +42,12 @@ namespace Xamarin.Forms.Core.XamlC
 
 					var fieldReference = module.ImportFieldReference(("Xamarin.Forms.Core", "Xamarin.Forms", "Color"),
 																	 color,
-																	 fd => fd.IsStatic);
+																	 isStatic: true);
 					if (fieldReference != null) {
 						yield return Instruction.Create(OpCodes.Ldsfld, fieldReference);
 						yield break;
 					}
-					var propertyGetterReference = module.ImportPropertyGetterReference(("Xamarin.Forms.Core", "Xamarin.Forms", "Color"),
-																					   color,
-																					   pd => pd.GetMethod.IsStatic);
+					var propertyGetterReference = module.ImportPropertyGetterReference(("Xamarin.Forms.Core", "Xamarin.Forms", "Color"), color, isStatic: true);
 					if (propertyGetterReference != null) {
 						yield return Instruction.Create(OpCodes.Call, propertyGetterReference);
 						yield break;

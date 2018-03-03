@@ -432,7 +432,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Create(Ldstr, valueString);
 					yield return Create(Ldc_I4, 0x6f); //NumberStyles.Number
 					var getInvariant = module.ImportPropertyGetterReference(("mscorlib", "System.Globalization", "CultureInfo"),
-																			propertyName: "InvariantCulture");
+					                                                        propertyName: "InvariantCulture", isStatic: true);
 					yield return Create(Call, getInvariant);
 					yield return Create(Ldloca, vardef);
 					var tryParse = module.ImportMethodReference(("mscorlib", "System", "Decimal"),
@@ -465,7 +465,7 @@ namespace Xamarin.Forms.Build.Tasks
 					//Use an extra temp var so we can push the value to the stack, just like other cases
 					yield return Create(Ldstr, valueString);
 					var getInvariant = module.ImportPropertyGetterReference(("mscorlib", "System.Globalization", "CultureInfo"),
-																			propertyName: "InvariantCulture");
+					                                                        propertyName: "InvariantCulture", isStatic: true);
 					yield return Create(Call, getInvariant);
 					yield return Create(Ldloca, vardef);
 					var tryParse = module.ImportMethodReference(("mscorlib", "System", "TimeSpan"),
