@@ -33,10 +33,12 @@ namespace Xamarin.Forms.Build.Tasks
 			//standard types comes from either mscorlib. System.Runtime or netstandard. Assume they are equivalent
 			if (   (xasm.StartsWith("System.Runtime", StringComparison.Ordinal)
 					|| xasm.StartsWith("mscorlib", StringComparison.Ordinal)
-					|| xasm.StartsWith("netstandard", StringComparison.Ordinal))
+					|| xasm.StartsWith("netstandard", StringComparison.Ordinal)
+					|| xasm.StartsWith("System.Xml", StringComparison.Ordinal))
 				&& (yasm.StartsWith("System.Runtime", StringComparison.Ordinal)
 					|| yasm.StartsWith("mscorlib", StringComparison.Ordinal)
-					|| yasm.StartsWith("netstandard", StringComparison.Ordinal)))
+					|| yasm.StartsWith("netstandard", StringComparison.Ordinal)
+					|| yasm.StartsWith("System.Xml", StringComparison.Ordinal)))
 				return true;
 			return xasm == yasm;
 		}
@@ -215,7 +217,7 @@ namespace Xamarin.Forms.Build.Tasks
 
 		public static CustomAttribute GetCustomAttribute(this TypeReference typeRef, ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) attributeType)
 		{
-			return typeRef.GetCustomAttribute(module.ImportReference(module.GetTypeDefinition(attributeType)));
+			return typeRef.GetCustomAttribute(module.ImportReference(attributeType));
 		}
 
 		[Obsolete]

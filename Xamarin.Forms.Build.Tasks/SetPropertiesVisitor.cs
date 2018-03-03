@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
@@ -473,7 +472,7 @@ namespace Xamarin.Forms.Build.Tasks
 					new ParameterDefinition(tSourceRef)
 				},
 				CustomAttributes = {
-					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), paramCount: 0))
+					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), parameterTypes: null))
 				}
 			};
 			getter.Body.InitLocals = true;
@@ -548,7 +547,7 @@ namespace Xamarin.Forms.Build.Tasks
 					new ParameterDefinition(tPropertyRef)
 				},
 				CustomAttributes = {
-					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), paramCount: 0))
+					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), parameterTypes: null))
 				}
 			};
 			setter.Body.InitLocals = true;
@@ -650,7 +649,7 @@ namespace Xamarin.Forms.Build.Tasks
 						new ParameterDefinition(tSourceRef)
 					},
 					CustomAttributes = {
-						new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), paramCount: 0))
+						new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), parameterTypes: null))
 					}
 				};
 				partGetter.Body.InitLocals = true;
@@ -1299,7 +1298,7 @@ namespace Xamarin.Forms.Build.Tasks
 				TypeAttributes.NestedPrivate) {
 				BaseType = module.TypeSystem.Object,
 				CustomAttributes = {
-					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), paramCount: 0)),
+					new CustomAttribute (module.ImportCtorReference(("mscorlib", "System.Runtime.CompilerServices", "CompilerGeneratedAttribute"), parameterTypes: null)),
 				}
 			};
 
@@ -1365,8 +1364,8 @@ namespace Xamarin.Forms.Build.Tasks
 			//SetDataTemplate
 			parentIl.Emit(Ldftn, loadTemplate);
 			parentIl.Emit(Newobj, module.ImportCtorReference(("mscorlib", "System", "Func`1"),
-															 paramCount: 2,
-															 classArguments: new[] { ("mscorlib", "System", "Object") }));
+															 classArguments: new[] { ("mscorlib", "System", "Object") },
+															 paramCount: 2));
 
 			parentContext.IL.Emit(OpCodes.Callvirt, module.ImportPropertySetterReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "IDataTemplate"), propertyName: "LoadTemplate"));
 

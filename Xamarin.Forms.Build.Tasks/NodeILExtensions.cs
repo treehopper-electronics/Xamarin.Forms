@@ -116,7 +116,7 @@ namespace Xamarin.Forms.Build.Tasks
 			if (typeConverter != null)
 			{
 				var isExtendedConverter = typeConverter.ImplementsInterface(module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms", "IExtendedTypeConverter")));
-				var typeConverterCtorRef = module.ImportCtorReference(typeConverter, paramCount: 0, predicate: md => !md.IsStatic);
+				var typeConverterCtorRef = module.ImportCtorReference(typeConverter, paramCount: 0);
 				var convertFromInvariantStringDefinition = isExtendedConverter
 					? module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms", "IExtendedTypeConverter"))
 						.ResolveCached()
@@ -190,17 +190,13 @@ namespace Xamarin.Forms.Build.Tasks
 			} else if (targetTypeRef.FullName == "System.TimeSpan") {
 				var ts = TimeSpan.Parse(str, CultureInfo.InvariantCulture);
 				var ticks = ts.Ticks;
-				var timeSpanCtorRef = module.ImportCtorReference(("mscorlib", "System", "TimeSpan"), paramCount: 1);
-
 				yield return Instruction.Create(OpCodes.Ldc_I8, ticks);
-				yield return Instruction.Create(OpCodes.Newobj, timeSpanCtorRef);
+				yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("mscorlib", "System", "TimeSpan"), parameterTypes: new[] { ("mscorlib", "System", "Int64") }));
 			} else if (targetTypeRef.FullName == "System.DateTime") {
 				var dt = DateTime.Parse(str, CultureInfo.InvariantCulture);
 				var ticks = dt.Ticks;
-				var dateTimeCtorRef = module.ImportCtorReference(("mscorlib", "System", "DateTime"), paramCount: 1);
-
 				yield return Instruction.Create(OpCodes.Ldc_I8, ticks);
-				yield return Instruction.Create(OpCodes.Newobj, dateTimeCtorRef);
+				yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("mscorlib", "System", "DateTime"), parameterTypes: new[] { ("mscorlib", "System", "Int64") }));
 			} else if (targetTypeRef.FullName == "System.String" && str.StartsWith("{}", StringComparison.Ordinal))
 				yield return Instruction.Create(OpCodes.Ldstr, str.Substring(2));
 			else if (targetTypeRef.FullName == "System.String")
@@ -233,10 +229,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Instruction.Create(OpCodes.Ldloc, vardef);
 				} else {
 					yield return Instruction.Create(OpCodes.Ldc_I4_0);
-					var decimalctor = module.ImportCtorReference(("mscorlib", "System", "Decimal"),
-																 paramCount: 1,
-																 predicate: md => md.Parameters[0].ParameterType.FullName == "System.Int32");
-					yield return Instruction.Create(OpCodes.Newobj, decimalctor);
+					yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("mscorlib", "System", "Decimal"), parameterTypes: new[] { ("mscorlib", "System", "Int32") }));
 				}
 			} else if (implicitOperator != null) {
 				yield return Instruction.Create(OpCodes.Ldstr, node.Value as string);
@@ -346,10 +339,13 @@ namespace Xamarin.Forms.Build.Tasks
 			if (xmlLineInfo.HasLineInfo()) {
 				yield return Create(Ldc_I4, xmlLineInfo.LineNumber);
 				yield return Create(Ldc_I4, xmlLineInfo.LinePosition);
-				ctor = module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "XmlLineInfo"), paramCount: 2);
+				ctor = module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "XmlLineInfo"), parameterTypes: new[] {
+					("mscorlib", "System", "Int32"),
+					("mscorlib", "System", "Int32"),
+				});
 			}
 			else
-				ctor = module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "XmlLineInfo"), paramCount: 0);
+				ctor = module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "XmlLineInfo"), parameterTypes: null);
 			yield return Create(Newobj, ctor);
 		}
 
@@ -465,7 +461,7 @@ namespace Xamarin.Forms.Build.Tasks
 			var addService = module.ImportMethodReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"), methodName: "Add", paramCount: 2);
 			var getTypeFromHandle = module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", paramCount: 1, predicate: md => md.IsStatic);
 
-			yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"), paramCount: 0));
+			yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"), parameterTypes: null));
 
 			//Add a SimpleValueTargetProvider
 			var pushParentIl = node.PushParentObjectsArray(context).ToList();
@@ -486,10 +482,10 @@ namespace Xamarin.Forms.Build.Tasks
 
 			//Add a NamescopeProvider
 			if (context.Scopes.ContainsKey(node)) {
-				yield return Create(Dup); //Dupicate the serviceProvider
+				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml.Internals", "INameScopeProvider")));
 				yield return Create(Call, getTypeFromHandle);
-				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "NameScopeProvider"), paramCount: 0));
+				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "NameScopeProvider"), parameterTypes: null));
 				yield return Create(Dup); //Duplicate the namescopeProvider
 				yield return Create(Ldloc, context.Scopes[node].Item1);
 				yield return Create(Callvirt, module.ImportPropertySetterReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "NameScopeProvider"), propertyName: "NameScope"));
@@ -498,10 +494,10 @@ namespace Xamarin.Forms.Build.Tasks
 
 			//Add a XamlTypeResolver
 			if (node.NamespaceResolver != null) {
-				yield return Create(Dup); //Dupicate the serviceProvider
+				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "IXamlTypeResolver")));
 				yield return Create(Call, getTypeFromHandle);
-				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlNamespaceResolver"), paramCount: 0));
+				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlNamespaceResolver"), parameterTypes: null));
 				foreach (var kvp in node.NamespaceResolver.GetNamespacesInScope(XmlNamespaceScope.ExcludeXml)) {
 					yield return Create(Dup); //dup the resolver
 					yield return Create(Ldstr, kvp.Key);
@@ -517,12 +513,12 @@ namespace Xamarin.Forms.Build.Tasks
 			}
 
 			if (node is IXmlLineInfo) {
-				yield return Create(Dup); //Dupicate the serviceProvider
+				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "IXmlLineInfoProvider")));
 				yield return Create(Call, getTypeFromHandle);
 				foreach (var instruction in node.PushXmlLineInfo(context))
 					yield return instruction;
-				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlLineInfoProvider"), paramCount: 1));
+				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlLineInfoProvider"), parameterTypes: new[] { ("System.Xml", "System.Xml", "IXmlLineInfo") }));
 				yield return Create(Callvirt, addService);
 			}
 		}

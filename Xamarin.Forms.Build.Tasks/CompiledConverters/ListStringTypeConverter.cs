@@ -29,8 +29,7 @@ namespace Xamarin.Forms.Core.XamlC
 
 			yield return Instruction.Create(OpCodes.Ldc_I4, parts.Count);
 			yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("System.Collections", "System.Collections.Generic", "List`1"),
-																					   paramCount: 1,
-																					   predicate: md => md.Parameters[0].ParameterType.FullName == "System.Int32",
+																					   parameterTypes: new[] { ("mscorlib", "System", "Int32") },
 																					   classArguments: new[] { ("mscorlib", "System", "String") }));
 			foreach (var part in parts) {
 				yield return Instruction.Create(OpCodes.Dup);

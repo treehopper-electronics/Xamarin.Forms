@@ -443,10 +443,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Create(Ldloc, vardef);
 				} else {
 					yield return Create(Ldc_I4_0);
-					var decimalctor = module.ImportCtorReference(("mscorlib", "System", "Decimal"),
-																 paramCount: 1,
-																 predicate: md => md.Parameters[0].ParameterType.FullName == "System.Int32");
-					yield return Create(Newobj, decimalctor);
+					yield return Create(Newobj, module.ImportCtorReference(("mscorlib", "System", "Decimal"), parameterTypes: new[] { ("mscorlib", "System", "Int32") }));
 				}
 				break;
 			case "System.Single":
@@ -480,10 +477,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Create(Ldloc, vardef);
 				} else {
 					yield return Create(Ldc_I8, 0L);
-					var timespanctor = module.ImportCtorReference(("mscorlib", "System", "TimeSpan"),
-																  paramCount: 1,
-																  predicate: md => md.Parameters[0].ParameterType.FullName == "System.Int64");
-					yield return Create(Newobj, timespanctor);
+					yield return Create(Newobj, module.ImportCtorReference(("mscorlib", "System", "TimeSpan"), parameterTypes: new[] { ("mscorlib", "System", "Int64") }));
 				}
 				break;
 			case "System.Uri":
@@ -504,7 +498,7 @@ namespace Xamarin.Forms.Build.Tasks
 					yield return Create(Ldnull);
 				break;
 			default:
-				var defaultCtor = module.ImportCtorReference(typedef, paramCount: 0);
+				var defaultCtor = module.ImportCtorReference(typedef, parameterTypes: null);
 				if (defaultCtor != null)
 					yield return Create(Newobj, defaultCtor);
 				else {

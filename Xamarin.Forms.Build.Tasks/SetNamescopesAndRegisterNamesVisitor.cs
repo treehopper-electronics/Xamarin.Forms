@@ -102,7 +102,7 @@ namespace Xamarin.Forms.Build.Tasks
 			var module = Context.Body.Method.Module;
 			var vardef = new VariableDefinition(module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "NameScope")));
 			Context.Body.Variables.Add(vardef);
-			Context.IL.Emit(OpCodes.Newobj, module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "NameScope"), paramCount: 0));
+			Context.IL.Emit(OpCodes.Newobj, module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "NameScope"), parameterTypes: null));
 			Context.IL.Emit(OpCodes.Stloc, vardef);
 			return vardef;
 		}

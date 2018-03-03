@@ -8,32 +8,35 @@ namespace Xamarin.Forms.Build.Tasks
 {
 	static class ModuleDefinitionExtensions
 	{
-		public static TypeReference ImportReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, (string assemblyName, string clrNamespace, string typeName)[] classArguments = null)
+		static Dictionary<(ModuleDefinition module, string typeKey), TypeReference> TypeRefCache = new Dictionary<(ModuleDefinition module, string typeKey), TypeReference>();
+		public static TypeReference ImportReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type)
 		{
-			var typeRef = module.ImportReference(module.GetTypeDefinition(type));
-			if (classArguments is null)
-				return typeRef;
-			return module.ImportReference(typeRef.MakeGenericInstanceType(classArguments.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray()));
+			var typeKey = type.ToString();
+			if (!TypeRefCache.TryGetValue((module, typeKey), out var typeRef))
+				TypeRefCache.Add((module, typeKey), typeRef = module.ImportReference(module.GetTypeDefinition(type)));
+			return typeRef;
+		}
+
+		public static TypeReference ImportReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, (string assemblyName, string clrNamespace, string typeName)[] classArguments)
+		{
+			var typeKey = $"{type}<{string.Join(",",classArguments)}>";
+			if (!TypeRefCache.TryGetValue((module, typeKey), out var typeRef))
+				TypeRefCache.Add((module, typeKey), typeRef = module.ImportReference(module.ImportReference(type).MakeGenericInstanceType(classArguments.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray())));
+			return typeRef;
 		}
 
 		public static TypeReference ImportArrayReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type)
 		{
-			var typeRef = module.ImportReference(type);
-			if (typeRef is null)
-				return null;
-			return module.ImportReference(typeRef.MakeArrayType());
+			var typeKey = "${type}[]";
+			if (!TypeRefCache.TryGetValue((module, typeKey), out var typeRef))
+				TypeRefCache.Add((module, typeKey), typeRef = module.ImportReference(module.ImportReference(type).MakeArrayType()));
+			return typeRef;
 		}
 
-		public static MethodReference ImportCtorReference(this ModuleDefinition module, TypeReference type, int paramCount, TypeReference[] classArguments = null, Func<MethodDefinition, bool> predicate = null)
+		static Dictionary<(ModuleDefinition module, string ctorKey), MethodReference> CtorRefCache = new Dictionary<(ModuleDefinition module, string ctorKey), MethodReference>();
+		static MethodReference ImportCtorReference(this ModuleDefinition module, TypeReference type, TypeReference[] classArguments, Func<MethodDefinition, bool> predicate)
 		{
-			var ctor = module
-				.ImportReference(type)
-				.ResolveCached()
-				.Methods
-				.FirstOrDefault(md =>
-								   md.IsConstructor
-								&& md.Parameters.Count == paramCount
-								&& (predicate?.Invoke(md) ?? true));
+			var ctor = module.ImportReference(type).ResolveCached().Methods.FirstOrDefault(md => !md.IsPrivate && !md.IsStatic && md.IsConstructor && (predicate?.Invoke(md) ?? true));
 			if (ctor is null)
 				return null;
 			var ctorRef = module.ImportReference(ctor);
@@ -42,19 +45,87 @@ namespace Xamarin.Forms.Build.Tasks
 			return module.ImportReference(ctorRef.ResolveGenericParameters(type.MakeGenericInstanceType(classArguments), module));
 		}
 
-		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount, (string assemblyName, string clrNamespace, string typeName)[] classArguments, Func<MethodDefinition, bool> predicate = null)
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, TypeReference type, TypeReference[] parameterTypes)
 		{
-			return module.ImportCtorReference(module.GetTypeDefinition(type), paramCount, classArguments?.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray(), predicate);
+			var ctorKey = $"{type}.ctor({(parameterTypes == null ? "" : string.Join(",", parameterTypes.Select(tr => (tr.Module.Assembly.Name.Name, tr.Namespace, tr.Name))))})";
+			if (CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				return ctorRef;
+			ctorRef = module.ImportCtorReference(type, classArguments: null, predicate: md => {
+				if (md.Parameters.Count != (parameterTypes?.Length ?? 0))
+					return false;
+				for (var i = 0; i < md.Parameters.Count; i++)
+					if (!TypeRefComparer.Default.Equals(md.Parameters[i].ParameterType, module.ImportReference(module.ImportReference(parameterTypes[i]))))
+						return false;
+				return true;
+			});
+			CtorRefCache.Add((module, ctorKey), ctorRef);
+			return ctorRef;
 		}
 
-		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount, TypeReference[] classArguments, Func<MethodDefinition, bool> predicate = null)
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount)
 		{
-			return module.ImportCtorReference(module.GetTypeDefinition(type), paramCount, classArguments, predicate);
+			var ctorKey = $"{type}.ctor({(string.Join(",", Enumerable.Repeat("_", paramCount)))})";
+			if (!CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				CtorRefCache.Add((module, ctorKey), ctorRef = module.ImportCtorReference(module.GetTypeDefinition(type), null, md => md.Parameters.Count == paramCount));
+			return ctorRef;
 		}
 
-		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount, Func<MethodDefinition, bool> predicate = null)
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, TypeReference type, int paramCount)
 		{
-			return module.ImportCtorReference(module.GetTypeDefinition(type), paramCount, null, predicate);
+			var ctorKey = $"{type}.ctor({(string.Join(",", Enumerable.Repeat("_", paramCount)))})";
+			if (!CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				CtorRefCache.Add((module, ctorKey), ctorRef = module.ImportCtorReference(type, null, md => md.Parameters.Count == paramCount));
+			return ctorRef;
+		}
+
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount, (string assemblyName, string clrNamespace, string typeName)[] classArguments)
+		{
+			var ctorKey = $"{type}<{(string.Join(",", classArguments))}>.ctor({(string.Join(",", Enumerable.Repeat("_", paramCount)))})";
+			if (!CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				CtorRefCache.Add((module, ctorKey), ctorRef = module.ImportCtorReference(module.GetTypeDefinition(type), classArguments.Select(module.GetTypeDefinition).ToArray(), md=>md.Parameters.Count==paramCount));
+			return ctorRef;
+		}
+
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, int paramCount, TypeReference[] classArguments)
+		{
+			var ctorKey = $"{type}<{(string.Join(",", classArguments.Select(tr => (tr.Module.Assembly.Name.Name, tr.Namespace, tr.Name))))}>.ctor({(string.Join(",", Enumerable.Repeat("_", paramCount)))})";
+			if (!CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				CtorRefCache.Add((module, ctorKey), ctorRef = module.ImportCtorReference(module.GetTypeDefinition(type), classArguments, predicate: md => md.Parameters.Count == paramCount));
+			return ctorRef;
+		}
+
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, (string assemblyName, string clrNamespace, string typeName)[] parameterTypes, (string assemblyName, string clrNamespace, string typeName)[] classArguments)
+		{
+			var ctorKey = $"{type}<{(string.Join(",", classArguments))}>.ctor({(parameterTypes == null ? "" : string.Join(",", parameterTypes))})";
+			if (CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				return ctorRef;
+			ctorRef = module.ImportCtorReference(module.GetTypeDefinition(type), classArguments.Select(module.GetTypeDefinition).ToArray(), md => {
+				if (md.Parameters.Count != (parameterTypes?.Length ?? 0))
+					return false;
+				for (var i = 0; i < md.Parameters.Count; i++)
+					if (!TypeRefComparer.Default.Equals(md.Parameters[i].ParameterType, module.ImportReference(module.ImportReference(parameterTypes[i]))))
+						return false;
+				return true;
+			});
+			CtorRefCache.Add((module, ctorKey), ctorRef);
+			return ctorRef;
+		}
+
+		public static MethodReference ImportCtorReference(this ModuleDefinition module, (string assemblyName, string clrNamespace, string typeName) type, (string assemblyName, string clrNamespace, string typeName)[] parameterTypes)
+		{
+			var ctorKey = $"{type}.ctor({(parameterTypes == null ? "" : string.Join(",", parameterTypes))})";
+			if (CtorRefCache.TryGetValue((module, ctorKey), out var ctorRef))
+				return ctorRef;
+			ctorRef = module.ImportCtorReference(module.GetTypeDefinition(type), classArguments: null, predicate: md => {
+				if (md.Parameters.Count != (parameterTypes?.Length ?? 0))
+					return false;
+				for (var i = 0; i < md.Parameters.Count; i++)
+					if (!TypeRefComparer.Default.Equals(md.Parameters[i].ParameterType, module.ImportReference(module.ImportReference(parameterTypes[i]))))
+						return false;
+				return true;
+			});
+			CtorRefCache.Add((module, ctorKey), ctorRef);
+			return ctorRef;
 		}
 
 		public static MethodReference ImportPropertyGetterReference(this ModuleDefinition module, TypeReference type, string propertyName, Func<PropertyDefinition, bool> predicate = null, bool flatten = false)

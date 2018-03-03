@@ -29,10 +29,11 @@ namespace Xamarin.Forms.Core.XamlC
 					yield return Instruction.Create(OpCodes.Ldc_R8, color.B);
 					yield return Instruction.Create(OpCodes.Ldc_R8, color.A);
 
-					var colorCtorRef = module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms", "Color"),
-																  paramCount: 4,
-																  predicate: md => md.Parameters.All(p => p.ParameterType.FullName == "System.Double"));
-					yield return Instruction.Create(OpCodes.Newobj, colorCtorRef);
+					yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("Xamarin.Forms.Core", "Xamarin.Forms", "Color"), parameterTypes: new[] {
+						("mscorlib", "System", "Double"),
+						("mscorlib", "System", "Double"),
+						("mscorlib", "System", "Double"),
+						("mscorlib", "System", "Double")}));
 					yield break;
 				}
 				var parts = value.Split('.');
