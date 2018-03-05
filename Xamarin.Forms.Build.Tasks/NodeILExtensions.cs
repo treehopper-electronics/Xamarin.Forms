@@ -215,32 +215,36 @@ namespace Xamarin.Forms.Build.Tasks
 //					IL_000f:  ldloca.s 0
 //					IL_0011:  call bool valuetype [mscorlib]System.Decimal::TryParse(string, valuetype [mscorlib]System.Globalization.NumberStyles, class [mscorlib]System.IFormatProvider, [out] valuetype [mscorlib]System.Decimal&)
 //					IL_0016:  pop
-					yield return Instruction.Create(OpCodes.Ldstr, str);
-					yield return Instruction.Create(OpCodes.Ldc_I4, 0x6f); //NumberStyles.Number
-					var getInvariant = module.ImportPropertyGetterReference(("mscorlib", "System.Globalization", "CultureInfo"),
-					                                                        propertyName: "InvariantCulture", isStatic: true);
-					yield return Instruction.Create(OpCodes.Call, getInvariant);
-					yield return Instruction.Create(OpCodes.Ldloca, vardef);
-					var tryParse = module.ImportMethodReference(("mscorlib", "System", "Decimal"),
-																methodName: "TryParse",
-																paramCount: 4);
-					yield return Instruction.Create(OpCodes.Call, tryParse);
-					yield return Instruction.Create(OpCodes.Pop);
-					yield return Instruction.Create(OpCodes.Ldloc, vardef);
+					yield return Create(Ldstr, str);
+					yield return Create(Ldc_I4, 0x6f); //NumberStyles.Number
+					yield return Create(Call, module.ImportPropertyGetterReference(("mscorlib", "System.Globalization", "CultureInfo"),
+																				   propertyName: "InvariantCulture", isStatic: true));
+					yield return Create(Ldloca, vardef);
+					yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Decimal"),
+																		   methodName: "TryParse",
+																		   parameterTypes: new[] {
+																			   ("mscorlib", "System", "String"),
+																			   ("mscorlib", "System.Globalization", "NumberStyles"),
+																			   ("mscorlib", "System", "IFormatProvider"),
+																			   ("mscorlib", "System", "Decimal"),
+																		   },
+																		   isStatic: true));
+					yield return Create(Pop);
+					yield return Create(Ldloc, vardef);
 				} else {
-					yield return Instruction.Create(OpCodes.Ldc_I4_0);
-					yield return Instruction.Create(OpCodes.Newobj, module.ImportCtorReference(("mscorlib", "System", "Decimal"), parameterTypes: new[] { ("mscorlib", "System", "Int32") }));
+					yield return Create(Ldc_I4_0);
+					yield return Create(Newobj, module.ImportCtorReference(("mscorlib", "System", "Decimal"), parameterTypes: new[] { ("mscorlib", "System", "Int32") }));
 				}
 			} else if (implicitOperator != null) {
-				yield return Instruction.Create(OpCodes.Ldstr, node.Value as string);
-				yield return Instruction.Create(OpCodes.Call, module.ImportReference(implicitOperator));
+				yield return Create(Ldstr, node.Value as string);
+				yield return Create(Call, module.ImportReference(implicitOperator));
 			} else
-				yield return Instruction.Create(OpCodes.Ldnull);
+				yield return Create(Ldnull);
 
 			if (isNullable)
-				yield return Instruction.Create(OpCodes.Newobj, module.ImportReference(nullableCtor));
+				yield return Create(Newobj, module.ImportReference(nullableCtor));
 			if (originalTypeRef.IsValueType && boxValueTypes)
-				yield return Instruction.Create(OpCodes.Box, module.ImportReference(originalTypeRef));
+				yield return Create(Box, module.ImportReference(originalTypeRef));
 		}
 
 		static Instruction PushParsedEnum(TypeReference enumRef, string value, IXmlLineInfo lineInfo)
@@ -402,17 +406,22 @@ namespace Xamarin.Forms.Build.Tasks
 			//Copy original array to final
 			if (context.ParentContextValues != null)
 			{
-				yield return Instruction.Create(OpCodes.Ldarg_0);
-				yield return Instruction.Create(OpCodes.Ldfld, context.ParentContextValues); //sourceArray
-				yield return Instruction.Create(OpCodes.Ldc_I4_0); //sourceIndex
-				yield return Instruction.Create(OpCodes.Ldloc, finalArray); //destinationArray
-				yield return Instruction.Create(OpCodes.Ldc_I4, nodes.Count); //destinationIndex
-				yield return Instruction.Create(OpCodes.Ldloc, parentObjectLength); //length
-				var arrayCopy = module.ImportMethodReference(("mscorlib", "System", "Array"),
-															 methodName: "Copy",
-															 paramCount: 5,
-															 predicate: md => md.Parameters[1].ParameterType.FullName == "System.Int32");
-				yield return Instruction.Create(OpCodes.Call, arrayCopy);
+				yield return Create(Ldarg_0);
+				yield return Create(Ldfld, context.ParentContextValues); //sourceArray
+				yield return Create(Ldc_I4_0); //sourceIndex
+				yield return Create(Ldloc, finalArray); //destinationArray
+				yield return Create(Ldc_I4, nodes.Count); //destinationIndex
+				yield return Create(Ldloc, parentObjectLength); //length
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Array"),
+																	   methodName: "Copy",
+																	   parameterTypes: new[] {
+																		   ("mscorlib", "System", "Array"),
+																		   ("mscorlib", "System", "Int32"),
+																		   ("mscorlib", "System", "Array"),
+																		   ("mscorlib", "System", "Int32"),
+																		   ("mscorlib", "System", "Int32"),
+																	   },
+																	   isStatic: true));
 			}
 
 			//Add nodes to array
@@ -440,9 +449,15 @@ namespace Xamarin.Forms.Build.Tasks
 			}
 			if (propertyRef != null) {
 				yield return Create(Ldtoken, module.ImportReference(declaringTypeReference ?? propertyRef.DeclaringType));
-				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", paramCount: 1, predicate: md => md.IsStatic));
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
 				yield return Create(Ldstr, propertyRef.Name);
-				yield return Create(Call, module.ImportMethodReference(("System.Reflection.Extensions", "System.Reflection", "RuntimeReflectionExtensions"), methodName: "GetRuntimeProperty", paramCount: 2));
+				yield return Create(Call, module.ImportMethodReference(("System.Reflection.Extensions", "System.Reflection", "RuntimeReflectionExtensions"),
+																	   methodName: "GetRuntimeProperty",
+																	   parameterTypes: new[]{
+																		   ("mscorlib", "System", "Type"),
+																		   ("mscorlib", "System", "String"),
+																	   },
+																	   isStatic: true));
 				yield break;
 			}
 			yield return Create(Ldnull);
@@ -458,8 +473,12 @@ namespace Xamarin.Forms.Build.Tasks
 			yield break;
 #endif
 
-			var addService = module.ImportMethodReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"), methodName: "Add", paramCount: 2);
-			var getTypeFromHandle = module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", paramCount: 1, predicate: md => md.IsStatic);
+			var addService = module.ImportMethodReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"),
+														  methodName: "Add",
+														  parameterTypes: new[] {
+															  ("mscorlib", "System", "Type"),
+															  ("mscorlib", "System", "Object"),
+														  });
 
 			yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlServiceProvider"), parameterTypes: null));
 
@@ -468,7 +487,7 @@ namespace Xamarin.Forms.Build.Tasks
 			if (pushParentIl[pushParentIl.Count - 1].OpCode != Ldnull) {
 				yield return Create(Dup); //Keep the serviceProvider on the stack
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "IProvideValueTarget")));
-				yield return Create(Call, getTypeFromHandle);
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
 
 				foreach (var instruction in pushParentIl)
 					yield return instruction;
@@ -484,7 +503,7 @@ namespace Xamarin.Forms.Build.Tasks
 			if (context.Scopes.ContainsKey(node)) {
 				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml.Internals", "INameScopeProvider")));
-				yield return Create(Call, getTypeFromHandle);
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
 				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "NameScopeProvider"), parameterTypes: null));
 				yield return Create(Dup); //Duplicate the namescopeProvider
 				yield return Create(Ldloc, context.Scopes[node].Item1);
@@ -496,17 +515,22 @@ namespace Xamarin.Forms.Build.Tasks
 			if (node.NamespaceResolver != null) {
 				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "IXamlTypeResolver")));
-				yield return Create(Call, getTypeFromHandle);
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
 				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlNamespaceResolver"), parameterTypes: null));
 				foreach (var kvp in node.NamespaceResolver.GetNamespacesInScope(XmlNamespaceScope.ExcludeXml)) {
 					yield return Create(Dup); //dup the resolver
 					yield return Create(Ldstr, kvp.Key);
 					yield return Create(Ldstr, kvp.Value);
-					yield return Create(Callvirt, module.ImportMethodReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlNamespaceResolver"), methodName: "Add", paramCount: 2));
+					yield return Create(Callvirt, module.ImportMethodReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlNamespaceResolver"),
+																			   methodName: "Add",
+																			   parameterTypes: new[] {
+																				   ("mscorlib", "System", "String"),
+																				   ("mscorlib", "System", "String"),
+																			   }));
 				}
 				yield return Create(Ldtoken, context.Body.Method.DeclaringType);
-				yield return Create(Call, getTypeFromHandle);
-				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System.Reflection", "IntrospectionExtensions"), methodName: "GetTypeInfo", paramCount: 1, predicate: md => md.IsStatic));
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System.Reflection", "IntrospectionExtensions"), methodName: "GetTypeInfo", parameterTypes: new[] { ("mscorlib", "System", "Type") }, isStatic: true));
 				yield return Create(Callvirt, module.ImportPropertyGetterReference(("mscorlib", "System.Reflection", "TypeInfo"), propertyName: "Assembly", flatten: true));
 				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XamlTypeResolver"), paramCount: 2));
 				yield return Create(Callvirt, addService);
@@ -515,7 +539,7 @@ namespace Xamarin.Forms.Build.Tasks
 			if (node is IXmlLineInfo) {
 				yield return Create(Dup); //Duplicate the serviceProvider
 				yield return Create(Ldtoken, module.ImportReference(("Xamarin.Forms.Core", "Xamarin.Forms.Xaml", "IXmlLineInfoProvider")));
-				yield return Create(Call, getTypeFromHandle);
+				yield return Create(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
 				foreach (var instruction in node.PushXmlLineInfo(context))
 					yield return instruction;
 				yield return Create(Newobj, module.ImportCtorReference(("Xamarin.Forms.Xaml", "Xamarin.Forms.Xaml.Internals", "XmlLineInfoProvider"), parameterTypes: new[] { ("System.Xml", "System.Xml", "IXmlLineInfo") }));

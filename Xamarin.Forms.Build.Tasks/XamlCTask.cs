@@ -278,10 +278,10 @@ namespace Xamarin.Forms.Build.Tasks
 					il.Emit(Call, getResourceProvider);
 
 					il.Emit(Ldtoken, module.ImportReference(initComp.DeclaringType));
-					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", paramCount: 1, predicate: md => md.IsStatic));
-					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System.Reflection", "IntrospectionExtensions"), methodName: "GetTypeInfo", paramCount: 1, predicate: md => md.IsStatic));
+					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System", "Type"), methodName: "GetTypeFromHandle", parameterTypes: new[] { ("mscorlib", "System", "RuntimeTypeHandle") }, isStatic: true));
+					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System.Reflection", "IntrospectionExtensions"), methodName: "GetTypeInfo", parameterTypes: new[] { ("mscorlib", "System", "Type") }, isStatic: true));
 					il.Emit(Callvirt, module.ImportPropertyGetterReference(("mscorlib", "System.Reflection", "TypeInfo"), propertyName: "Assembly", flatten: true));
-					il.Emit(Callvirt, module.ImportMethodReference(("mscorlib", "System.Reflection", "Assembly"), methodName: "GetName", paramCount: 0)); //assemblyName
+					il.Emit(Callvirt, module.ImportMethodReference(("mscorlib", "System.Reflection", "Assembly"), methodName: "GetName", parameterTypes: null)); //assemblyName
 
 					il.Emit(Ldstr, resourcePath);   //resourcePath
 					il.Emit(Callvirt, module.ImportMethodReference(("mscorlib", "System", "Func`3"),
@@ -302,7 +302,7 @@ namespace Xamarin.Forms.Build.Tasks
 					il.Emit(Brfalse, nop);
 					il.Emit(Call, getXamlFileProvider);
 					il.Emit(Ldarg_0);
-					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System", "Object"), methodName: "GetType", paramCount: 0));
+					il.Emit(Call, module.ImportMethodReference(("mscorlib", "System", "Object"), methodName: "GetType", parameterTypes: null));
 					il.Emit(Callvirt, module.ImportMethodReference(("mscorlib", "System", "Func`2"),
 																   methodName: "Invoke",
 																   paramCount: 1,

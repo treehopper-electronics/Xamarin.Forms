@@ -114,8 +114,11 @@ namespace Xamarin.Forms.Build.Tasks
 			Context.IL.Emit(OpCodes.Ldloc, ns);
 			Context.IL.Emit(OpCodes.Call, module.ImportMethodReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "NameScope"),
 																	   methodName: "SetNameScope",
-																	   paramCount: 2,
-																	   predicate: md => md.IsStatic));
+																	   parameterTypes: new[] {
+																		   ("Xamarin.Forms.Core", "Xamarin.Forms", "BindableObject"),
+																		   ("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "INameScope"),
+																	   },
+																	   isStatic: true));
 		}
 
 		void RegisterName(string str, VariableDefinition namescopeVarDef, IList<string> namesInNamescope, VariableDefinition element, INode node)
@@ -130,7 +133,10 @@ namespace Xamarin.Forms.Build.Tasks
 			Context.IL.Emit(OpCodes.Ldloc, element);
 			Context.IL.Emit(OpCodes.Callvirt, module.ImportMethodReference(("Xamarin.Forms.Core", "Xamarin.Forms.Internals", "INameScope"),
 																		   methodName: "RegisterName",
-																		   paramCount: 2));
+																		   parameterTypes: new[] {
+																			   ("mscorlib", "System", "String"),
+																			   ("mscorlib", "System", "Object"),
+																		   }));
 		}
 
 		void SetStyleId(string str, VariableDefinition element)

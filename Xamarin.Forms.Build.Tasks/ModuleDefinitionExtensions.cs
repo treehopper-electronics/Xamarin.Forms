@@ -173,7 +173,7 @@ namespace Xamarin.Forms.Build.Tasks
 			return methodReference;
 		}
 
-		static MethodReference ImportMethodReference(this ModuleDefinition module, TypeReference type, string methodName, int paramCount, Func<MethodDefinition, bool> predicate = null, TypeReference[] classArguments = null)
+		static MethodReference ImportMethodReference(this ModuleDefinition module, TypeReference type, string methodName, Func<MethodDefinition, bool> predicate = null, TypeReference[] classArguments = null)
 		{
 			var method = module
 				.ImportReference(type)
@@ -181,8 +181,8 @@ namespace Xamarin.Forms.Build.Tasks
 				.Methods
 				.FirstOrDefault(md =>
 								   !md.IsConstructor
+				                && !md.IsPrivate
 								&& md.Name == methodName
-								&& md.Parameters.Count == paramCount
 								&& (predicate?.Invoke(md) ?? true));
 			if (method is null)
 				return null;
@@ -194,11 +194,53 @@ namespace Xamarin.Forms.Build.Tasks
 
 		public static MethodReference ImportMethodReference(this ModuleDefinition module,
 															(string assemblyName, string clrNamespace, string typeName) type,
-															string methodName, int paramCount, Func<MethodDefinition, bool> predicate = null,
-															(string assemblyName, string clrNamespace, string typeName)[] classArguments = null)
+															string methodName,
+															(string assemblyName, string clrNamespace, string typeName)[] parameterTypes,
+															(string assemblyName, string clrNamespace, string typeName)[] classArguments = null,
+															bool isStatic = false)
 		{
-			return module.ImportMethodReference(module.GetTypeDefinition(type), methodName, paramCount, predicate,
-												classArguments?.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray());
+			var methodKey = $"{(isStatic ? "static " : "")}{type}<{(classArguments == null ? "" : string.Join(",", classArguments))}>.({(parameterTypes == null ? "" : string.Join(",", parameterTypes))})";
+			if (MethodRefCache.TryGetValue((module, methodKey), out var methodReference))
+				return methodReference;
+			methodReference = module.ImportMethodReference(module.GetTypeDefinition(type),
+														   methodName: methodName,
+														   predicate: md => {
+															   if (md.IsStatic != isStatic)
+																   return false;
+											   				   if (md.Parameters.Count != (parameterTypes?.Length ?? 0))
+																   return false;
+															   for (var i = 0; i < md.Parameters.Count; i++)
+																   if (!TypeRefComparer.Default.Equals(md.Parameters[i].ParameterType, module.ImportReference(module.ImportReference(parameterTypes[i]))))
+																	   return false;
+															   return true;
+														   },
+														   classArguments: classArguments?.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray());
+			MethodRefCache.Add((module, methodKey), methodReference);
+			return methodReference;
+		}
+
+		public static MethodReference ImportMethodReference(this ModuleDefinition module,
+													(string assemblyName, string clrNamespace, string typeName) type,
+													string methodName,
+													int paramCount,
+													(string assemblyName, string clrNamespace, string typeName)[] classArguments = null,
+													bool isStatic = false)
+		{
+			var methodKey = $"{(isStatic ? "static " : "")}{type}<{(classArguments == null ? "" : string.Join(",", classArguments))}>.({(string.Join(",", Enumerable.Repeat("_", paramCount)))})";
+			if (MethodRefCache.TryGetValue((module, methodKey), out var methodReference))
+				return methodReference;
+			methodReference = module.ImportMethodReference(module.GetTypeDefinition(type),
+														   methodName: methodName,
+														   predicate: md => {
+															   if (md.IsStatic != isStatic)
+																   return false;
+															   if (md.Parameters.Count != paramCount)
+																   return false;
+															   return true;
+														   },
+														   classArguments: classArguments?.Select(gp => module.GetTypeDefinition((gp.assemblyName, gp.clrNamespace, gp.typeName))).ToArray());
+			MethodRefCache.Add((module, methodKey), methodReference);
+			return methodReference;
 		}
 
 		static Dictionary<(ModuleDefinition module, string fieldRefKey), FieldReference> FieldRefCache = new Dictionary<(ModuleDefinition module, string fieldRefKey), FieldReference>();
